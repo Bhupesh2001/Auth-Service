@@ -28,21 +28,37 @@ import java.util.Set;
 @Table(name = "users")
 public class UserInfo {
 
+    /**
+     * Primary key for the UserInfo entity.
+     * This is a custom ID (e.g., UUID or assigned manually).
+     */
     @Id
     @Column(name = "user_id")
     private String userId;
 
+    /**
+     * Unique username for the user.
+     */
     private String username;
 
+    /**
+     * Encrypted password for authentication.
+     */
     private String password;
 
+    /**
+     * Represents the roles associated with the user.
+     *
+     * A user can have multiple roles, and each role can be assigned to multiple users.
+     * This is implemented using a join table named 'users_roles'.
+     *
+     * FetchType.EAGER ensures roles are loaded immediately with the user.
+     */
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "users_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-
     private Set<UserRole> roles = new HashSet<>();
-
 }
