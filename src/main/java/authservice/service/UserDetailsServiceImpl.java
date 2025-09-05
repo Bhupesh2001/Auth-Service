@@ -1,11 +1,13 @@
 package authservice.service;
 
 import authservice.entities.UserInfo;
+import authservice.eventProducer.UserInfoProducer;
 import authservice.model.UserInfoDto;
 import authservice.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,15 +29,16 @@ import java.util.UUID;
 @Component
 @AllArgsConstructor
 @Data
+@Slf4j
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    @Autowired
     private final UserRepository userRepository;
 
-    @Autowired
     private final PasswordEncoder passwordEncoder;
 
-    private static final Logger log = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
+    private final UserInfoProducer userInfoProducer;
+
+//    private static final Logger log = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
 
     /**
      * Loads the user by username from the database.
@@ -46,7 +49,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.debug("Entering in loadUserByUsername Method...");
+        log.info("Entering in loadUserByUsername Method...");
         UserInfo user = userRepository.findByUsername(username);
         if(user == null){
             log.error("Username not found: {}", username);
@@ -88,7 +91,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         // Placeholder for sending registration event to a queue
         // pushEventToQueue
-
+        userInfoProducer.sendEventToKafka(userInfoDto);
         return true;
     }
 }

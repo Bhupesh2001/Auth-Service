@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = {"authService.repository"})
-@ComponentScan(basePackages = {"authService.controller", "authService.auth", "authService.service"})
+//@ComponentScan(basePackages = {"authService.controller", "authService.auth", "authService.service"})
 public class AuthServiceApplication {
 
     public static void main(String[] args) {

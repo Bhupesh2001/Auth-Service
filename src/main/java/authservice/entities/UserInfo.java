@@ -48,10 +48,10 @@ public class UserInfo {
 
     /**
      * Represents the roles associated with the user.
-     *
+     * <p>
      * A user can have multiple roles, and each role can be assigned to multiple users.
      * This is implemented using a join table named 'users_roles'.
-     *
+     * <p>
      * FetchType.EAGER ensures roles are loaded immediately with the user.
      */
     @ManyToMany(fetch = FetchType.EAGER)
