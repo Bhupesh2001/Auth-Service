@@ -1,18 +1,20 @@
 package authservice.model;
 
-import authservice.entities.UserInfo;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import authservice.entities.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@JsonNaming (PropertyNamingStrategies.SnakeCaseStrategy.class)
+import java.util.HashSet;
+import java.util.Set;
+
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserInfoDto extends UserInfo
+@Data
+public class UserInfoDto
 {
 
     private String firstName; // first_name
@@ -23,5 +25,12 @@ public class UserInfoDto extends UserInfo
 
     private String email; // email
 
+    private String profilePic; // profile_pic
 
+
+    private String username; // user_id
+
+    private String password; // user_id
+
+    private Set<UserRole> roles = new HashSet<>();
 }

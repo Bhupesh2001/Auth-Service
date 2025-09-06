@@ -25,7 +25,7 @@ public class UserInfoProducer {
                 .withPayload(userInfoDto)
                 .setHeader(KafkaHeaders.TOPIC, TOPIC_NAME)
                 .build();
-        kafkaTemplate.send(TOPIC_NAME, userInfoDto);
+        kafkaTemplate.send(message);
         log.info("UserInfoProducer: Sent event to Kafka topic {}: {}", TOPIC_NAME, userInfoDto);
     }
 }
