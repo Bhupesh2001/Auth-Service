@@ -18,7 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
-import java.util.Objects;
+import static java.util.Objects.nonNull;
 import java.util.UUID;
 
 /**
@@ -82,7 +82,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         userInfoDto.setPassword(passwordEncoder.encode(userInfoDto.getPassword()));
 
-        if(Objects.nonNull(checkIfUserAlreadyExist(userInfoDto))){
+        if(nonNull(checkIfUserAlreadyExist(userInfoDto))){
             return false;
         }
 
@@ -93,5 +93,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         // pushEventToQueue
         userInfoProducer.sendEventToKafka(userInfoDto);
         return true;
+    }
+
+    public String getUserByUsername(String name) {
+        UserInfo user = userRepository.findByUsername(name);
+        if(nonNull(user)){
+            return user.getUserId();
+        }
+        return null;
     }
 }

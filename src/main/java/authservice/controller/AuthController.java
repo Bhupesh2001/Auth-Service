@@ -8,13 +8,17 @@ import authservice.service.RefreshTokenService;
 import authservice.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.neo4j.Neo4jProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import static java.util.Objects.nonNull;
 
 @AllArgsConstructor
 @RestController
@@ -33,8 +37,8 @@ public class AuthController
     @PostMapping("auth/v1/signup")
     public ResponseEntity<?> SignUp(@RequestBody UserInfoDto userInfoDto){
         try{
-            Boolean isSignUped = userDetailsService.signupUser(userInfoDto);
-            if(Boolean.FALSE.equals(isSignUped)){
+            Boolean isSignedUp = userDetailsService.signupUser(userInfoDto);
+            if(Boolean.FALSE.equals(isSignedUp)){
                 return new ResponseEntity<>("Already Exist", HttpStatus.BAD_REQUEST);
             }
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfoDto.getUsername());
@@ -46,4 +50,15 @@ public class AuthController
         }
     }
 
+    @GetMapping("auth/v1/ping")
+    public ResponseEntity<String> ping(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if(nonNull(authentication) && authentication.isAuthenticated()){
+            String userId = userDetailsService.getUserByUsername(authentication.getName());
+            if(nonNull(userId)){
+                return new ResponseEntity<>(userId, HttpStatus.OK);
+            }
+        }
+        return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
+    }
 }
