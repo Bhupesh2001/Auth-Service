@@ -7,10 +7,12 @@ import authservice.service.JwtService;
 import authservice.service.RefreshTokenService;
 import authservice.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.neo4j.Neo4jProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +24,7 @@ import static java.util.Objects.nonNull;
 
 @AllArgsConstructor
 @RestController
+@Slf4j
 public class AuthController
 {
 
@@ -52,13 +55,43 @@ public class AuthController
 
     @GetMapping("auth/v1/ping")
     public ResponseEntity<String> ping(){
+        log.info("=== Ping endpoint called ===");
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if(nonNull(authentication) && authentication.isAuthenticated()){
-            String userId = userDetailsService.getUserByUsername(authentication.getName());
-            if(nonNull(userId)){
-                return new ResponseEntity<>(userId, HttpStatus.OK);
-            }
+        log.info("Authentication object: {}", authentication);
+        log.info("Authentication class: {}", authentication != null ? authentication.getClass().getName() : "null");
+        log.info("Is authenticated: {}", authentication != null ? authentication.isAuthenticated() : "null");
+        log.info("Principal: {}", authentication != null ? authentication.getPrincipal() : "null");
+        // Add this specific check
+        if(authentication instanceof AnonymousAuthenticationToken){
+            log.error("Authentication is anonymous!");
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
+
+        if(nonNull(authentication) && authentication.isAuthenticated()){
+            log.info("Authentication check passed");
+            String username = authentication.getName();
+            log.info("Username from authentication: {}", username);
+
+            try {
+                String userId = userDetailsService.getUserByUsername(username);
+                log.info("Retrieved userId: {}", userId);
+
+                if(nonNull(userId)){
+                    log.info("Returning success response with userId: {}", userId);
+                    return new ResponseEntity<>(userId, HttpStatus.OK);
+                } else {
+                    log.info("UserId is null for username: {}", username);
+                }
+            } catch (Exception e) {
+                log.info("Exception while getting userId: ", e);
+                throw e; // Re-throw to see in logs
+            }
+        } else {
+            log.info("Authentication check failed");
+        }
+
+        log.info("Returning unauthorized response");
         return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
     }
 }
