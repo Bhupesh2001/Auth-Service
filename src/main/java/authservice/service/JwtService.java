@@ -5,8 +5,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+@Getter
 @Service
 public class JwtService {
 
@@ -25,6 +27,22 @@ public class JwtService {
      * It's kept here in plain text temporarily for simplicity in development/testing.
      */
     public static final String SECRET = "357638792F423F4428472B4B6250655368566D597133743677397A2443264629";
+
+    /**
+     * -- GETTER --
+     *  Gets the JWT expiration time in milliseconds
+     *
+     */
+    @Value("${jwt.expiration.time:3600000}") // 1 hour default
+    private long jwtExpiration;
+
+    /**
+     * -- GETTER --
+     *  Gets the refresh token expiration time in milliseconds
+     *
+     */
+    @Value("${jwt.refresh.expiration.time:86400000}") // 24 hours default
+    private long refreshExpiration;
 
     /**
      * Extracts the username (subject) from the given JWT.
@@ -116,7 +134,18 @@ public class JwtService {
      */
     public String GenerateToken(String username){
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, username);
+        return createToken(claims, username, jwtExpiration);
+    }
+
+    /**
+     * Generates a refresh token for the given username with longer expiration.
+     *
+     * @param username the username to embed in the token
+     * @return the generated refresh token
+     */
+    public String GenerateRefreshToken(String username){
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, username, refreshExpiration);
     }
 
     /**
@@ -124,14 +153,15 @@ public class JwtService {
      *
      * @param claims a map of custom claims to include in the token
      * @param username the subject of the token
+     * @param expirationTime expiration time in milliseconds
      * @return the JWT token string
      */
-    private String createToken(Map<String, Object> claims, String username) {
+    private String createToken(Map<String, Object> claims, String username, long expirationTime) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis()+1000*60)) // Token valid for 60 seconds
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 }
