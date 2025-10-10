@@ -1,6 +1,7 @@
 package authservice.controller;
 
 import authservice.entities.RefreshToken;
+import authservice.entities.UserInfo;
 import authservice.request.AuthRequestDTO;
 import authservice.request.RefreshTokenRequestDTO;
 import authservice.response.JwtResponseDTO;
@@ -12,10 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.Optional;
 
 @Controller
 public class TokenController
@@ -31,31 +33,49 @@ public class TokenController
     private JwtService jwtService;
 
     @PostMapping("auth/v1/login")
-    public ResponseEntity<?> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO){
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.getUsername(), authRequestDTO.getPassword()));
-        if(authentication.isAuthenticated()){
+    public ResponseEntity<JwtResponseDTO> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO){
+        try{
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.getUsername(), authRequestDTO.getPassword()));
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequestDTO.getUsername());
             return new ResponseEntity<>(JwtResponseDTO.builder()
                     .accessToken(jwtService.GenerateToken(authRequestDTO.getUsername()))
                     .token(refreshToken.getToken())
                     .build(), HttpStatus.OK);
-
-        } else {
-            return new ResponseEntity<>("Exception in User Service", HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception ex){
+            return new ResponseEntity<>(JwtResponseDTO.builder().error(ex.getMessage()).build(), HttpStatus.UNAUTHORIZED);
         }
     }
 
     @PostMapping("auth/v1/refreshToken")
-    public JwtResponseDTO refreshToken(@RequestBody RefreshTokenRequestDTO refreshTokenRequestDTO){
-        return refreshTokenService.findByToken(refreshTokenRequestDTO.getToken())
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUserInfo)
-                .map(userInfo -> {
-                    String accessToken = jwtService.GenerateToken(userInfo.getUsername());
-                    return JwtResponseDTO.builder()
-                            .accessToken(accessToken)
-                            .token(refreshTokenRequestDTO.getToken()).build();
-                }).orElseThrow(() ->new RuntimeException("Refresh Token is not in DB..!!"));
+    public ResponseEntity<JwtResponseDTO> refreshToken(@RequestBody RefreshTokenRequestDTO refreshTokenRequestDTO) {
+        String requestToken = refreshTokenRequestDTO.getToken();
+
+        // Find the refresh token in the database
+        Optional<RefreshToken> refreshTokenOptional = refreshTokenService.findByToken(requestToken);
+
+        RefreshToken refreshToken;
+        try{
+            if (refreshTokenOptional.isEmpty()) {
+                throw new RuntimeException("Refresh Token is not in DB..!!");
+            }
+            refreshToken = refreshTokenService.verifyExpiration(refreshTokenOptional.get());
+        } catch (Exception e) {
+            return new ResponseEntity<>(JwtResponseDTO.builder().error(e.getMessage()).build(),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        // Get user info from refresh token
+        UserInfo userInfo = refreshToken.getUserInfo();
+
+        // Generate new access token
+        String accessToken = jwtService.GenerateToken(userInfo.getUsername());
+
+        // Build and return response
+
+        return ResponseEntity.ok(JwtResponseDTO.builder()
+                .accessToken(accessToken)
+                .token(requestToken)
+                .build());
     }
 
 }

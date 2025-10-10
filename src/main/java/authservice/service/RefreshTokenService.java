@@ -4,13 +4,16 @@ import authservice.entities.RefreshToken;
 import authservice.entities.UserInfo;
 import authservice.repository.RefreshTokenRepository;
 import authservice.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class RefreshTokenService {
 
@@ -19,6 +22,9 @@ public class RefreshTokenService {
 
     @Autowired
     UserRepository userRepository;
+
+    @Value("${jwt.refresh.expiration.time:86400000}")
+    private Long refreshTokenDurationMs;
 
     /**
      * Creates and stores a new refresh token for the given username.
@@ -32,7 +38,7 @@ public class RefreshTokenService {
         RefreshToken refreshToken = RefreshToken.builder()
                 .userInfo(userInfoExtracted)
                 .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusMillis(600000)) // Token valid for 10 minutes
+                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
                 .build();
 
         return refreshTokenRepository.save(refreshToken);
